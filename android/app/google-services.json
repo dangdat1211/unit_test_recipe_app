@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "442194889010",
+    "firebase_url": "https://recipe-app-5a80e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "recipe-app-5a80e",
+    "storage_bucket": "recipe-app-5a80e.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:442194889010:android:66ed396e4f46bf76136f2b",
+        "android_client_info": {
+          "package_name": "com.example.recipe_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDE1KCch_TySYgIpRjqbT6KkrRkMEFwpHc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
