@@ -2,8 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
+
+  UserService({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance;
 
   Future<void> saveProfileData({
     required String fullname,
@@ -14,6 +18,17 @@ class UserService {
     User? currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception('No user logged in');
+    }
+
+    // Check if username already exists
+    QuerySnapshot usernameQuery = await _firestore
+        .collection('users')
+        .where('username', isEqualTo: username)
+        .where(FieldPath.documentId, isNotEqualTo: currentUser.uid)
+        .get();
+    
+    if (usernameQuery.docs.isNotEmpty) {
+      throw Exception('Username already exists');
     }
 
     Map<String, dynamic> updateData = {
@@ -32,10 +47,19 @@ class UserService {
   Future<void> changePassword({
     required String currentPassword,
     required String newPassword,
+    required String confirmPassword,
   }) async {
     User? user = _auth.currentUser;
     if (user == null) {
       throw Exception('No user logged in');
+    }
+
+    if (newPassword != confirmPassword) {
+      throw Exception('New password and confirm password do not match');
+    }
+
+    if (currentPassword == newPassword) {
+      throw Exception('New password must be different from current password');
     }
 
     try {
@@ -47,21 +71,24 @@ class UserService {
 
       await user.updatePassword(newPassword);
     } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') {
+        throw Exception('Current password is incorrect');
+      }
       throw FirebaseAuthException(code: e.code);
     }
   }
 
   Future<Map<String, dynamic>> getUserInfo(String userId) async {
-  try {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    if (userDoc.exists) {
-      return userDoc.data() as Map<String, dynamic>;
-    } else {
-      throw Exception('User not found');
+    try {
+      DocumentSnapshot userDoc = await _firestore.collection('users').doc(userId).get();
+      if (userDoc.exists) {
+        return userDoc.data() as Map<String, dynamic>;
+      } else {
+        throw Exception('User not found');
+      }
+    } catch (e) {
+      print('Error getting user info: $e');
+      rethrow;
     }
-  } catch (e) {
-    print('Error getting user info: $e');
-    rethrow;
   }
-}
 }

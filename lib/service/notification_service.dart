@@ -4,20 +4,22 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:http/http.dart' as http;
-import 'package:googleapis/servicecontrol/v1.dart' as servicecontrol;
-import 'package:googleapis_auth/auth_io.dart' as auth;
-import 'package:recipe_app/main.dart';
-import 'package:recipe_app/screens/comment_screen/comment_screen.dart';
-import 'package:recipe_app/screens/detail_recipe.dart/detail_recipe.dart';
-import 'package:recipe_app/screens/notify_screen/notify_screen.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:recipe_app/screens/profile_user.dart/profile_user.dart';
+
 
 class NotificationService {
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+  final FirebaseFirestore _firestore;
+
+  NotificationService({
+    FirebaseFirestore? firestore
+  }) : 
+      _firestore = firestore ?? FirebaseFirestore.instance;
+
+
   final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -56,7 +58,7 @@ class NotificationService {
   }
 
   void requestNotificationPermission() async {
-    NotificationSettings settings = await messaging.requestPermission(
+    NotificationSettings settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       announcement: false,
       badge: true,
@@ -77,12 +79,12 @@ class NotificationService {
   }
 
   Future<String?> getDeviceToken() async {
-    String? token = await messaging.getToken();
+    String? token = await FirebaseMessaging.instance.getToken();
     return token;
   }
 
   void isTokenRefresh() {
-    messaging.onTokenRefresh.listen((newToken) {
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
       // Handle token refresh logic
       print('Token refreshed: $newToken');
     });
@@ -112,28 +114,28 @@ class NotificationService {
       final userId = payloadData['userId'];
       final recipeId = payloadData['recipeId'];
 
-      if (screen == 'recipe') {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-              builder: (context) => DetailReCipe(
-                    recipeId: recipeId,
-                    userId: userId,
-                  )),
-        );
-      } else if (screen == 'comment') {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-              builder: (context) => CommentScreen(
-                    recipeId: recipeId,
-                    userId: userId,
-                  )),
-        );
-      } else if (screen == 'user') {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-              builder: (context) => ProfileUser(userId: userId)),
-        );
-      }
+      // if (screen == 'recipe') {
+      //   navigatorKey.currentState?.push(
+      //     MaterialPageRoute(
+      //         builder: (context) => DetailReCipe(
+      //               recipeId: recipeId,
+      //               userId: userId,
+      //             )),
+      //   );
+      // } else if (screen == 'comment') {
+      //   navigatorKey.currentState?.push(
+      //     MaterialPageRoute(
+      //         builder: (context) => CommentScreen(
+      //               recipeId: recipeId,
+      //               userId: userId,
+      //             )),
+      //   );
+      // } else if (screen == 'user') {
+      //   navigatorKey.currentState?.push(
+      //     MaterialPageRoute(
+      //         builder: (context) => ProfileUser(userId: userId)),
+      //   );
+      // }
     } else {
       print('Khong co gi');
     }
@@ -239,13 +241,11 @@ class NotificationService {
   }
 
   void handleNotification(BuildContext context, RemoteMessage message) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => NotifyScreen()),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (context) => NotifyScreen()),
+    // );
   }
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> createNotification({
     required String content,

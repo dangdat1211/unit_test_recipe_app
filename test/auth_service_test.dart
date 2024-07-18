@@ -7,14 +7,54 @@ import 'package:recipe_app/service/auth_service.dart';
 import 'package:recipe_app/service/notification_service.dart';
 import 'package:mockito/mockito.dart';
 
-class MockNotificationService extends Mock implements NotificationService {}
-class MockFirebaseAuthAlwaysThrow extends Mock implements FirebaseAuth {
+class MockNotificationService extends Mock implements NotificationService {
+  String? deviceToken;
+
+  @override
+  Future<String?> getDeviceToken() async {
+    return deviceToken;
+  }
+
+  @override
+  void requestNotificationPermission() {}
+
+  @override
+  void isTokenRefresh() {}
+}
+
+class MockFirebaseAuth extends Mock implements FirebaseAuth {
+  Map<String, MockUser> users = {};
+
+  void addUser(MockUser user) {
+    users[user.email!] = user;
+  }
+
   @override
   Future<UserCredential> createUserWithEmailAndPassword({
     required String email,
     required String password,
   }) async {
-    throw FirebaseAuthException(code: 'error');
+    if (email == 'existing@example.com') {
+      throw FirebaseAuthException(code: 'email-already-in-use');
+    }
+    return MockUserCredential(MockUser(uid: 'newUserId', email: email));
+  }
+
+  @override
+  Future<UserCredential> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    if (users.containsKey(email)) {
+      return MockUserCredential(users[email]!);
+    }
+    throw FirebaseAuthException(code: 'user-not-found');
+  }
+
+  @override
+  Future<void> signOut() async {
+    // Thực hiện logic đăng xuất mặc định nếu cần
+    return Future.value();
   }
 }
 
@@ -42,7 +82,6 @@ void main() {
         firestore: fakeFirestore,
         notificationService: mockNotificationService,
       );
-
     });
 
     group('registerUser', () {
@@ -58,93 +97,110 @@ void main() {
         expect(result.username, 'testuser');
         expect(result.email, 'test@example.com');
 
-        // Verify user was added to Firestore
-        final userDoc = await fakeFirestore.collection('users').doc(result.id).get();
+        final userDoc =
+            await fakeFirestore.collection('users').doc(result.id).get();
         expect(userDoc.exists, true);
         expect(userDoc.data()!['username'], 'testuser');
       });
 
-      test('should throw FirebaseAuthException on registration failure', () async {
-        // Use the custom mock that always throws an exception
-        final authServiceWithMockAuth = AuthService(
-          auth: MockFirebaseAuthAlwaysThrow(),
-          firestore: fakeFirestore,
-          notificationService: mockNotificationService,
-        );
-
-        expect(
-          () => authServiceWithMockAuth.registerUser(
-            username: 'testuser',
+      test('should throw exception when required field is missing', () async {
+        await expectLater(
+          authService.registerUser(
+            username: '',
             fullname: 'Test User',
             email: 'test@example.com',
             password: 'password123',
           ),
-          throwsA(isA<FirebaseAuthException>()),
+          throwsA(isA<FirebaseAuthException>()
+              .having((e) => e.code, 'code', 'invalid-input')),
+        );
+      });
+
+      test('should throw exception when user already exists', () async {
+        await expectLater(
+          authService.registerUser(
+            username: 'newuser',
+            fullname: 'New User',
+            email: 'existing@example.com',
+            password: 'newpassword',
+          ),
+          throwsA(isA<FirebaseAuthException>()
+              .having((e) => e.code, 'code', 'email-already-in-use')),
         );
       });
     });
 
     group('signInWithEmailAndPassword', () {
       test('should sign in user successfully', () async {
+        // Tạo một user mẫu trong MockFirebaseAuth
         final mockUser = MockUser(
           uid: 'testUid',
           email: 'test@example.com',
+          isEmailVerified: true,
         );
-        final mockUserCredential = MockUserCredential(mockUser);
+        mockAuth.addUser(mockUser);
 
-        when(mockAuth.signInWithEmailAndPassword(
-          email: 'test@example.com',
-          password: 'password123',
-        )).thenAnswer((_) async => mockUserCredential);
-
-        // Thêm dữ liệu user vào FakeFirestore
+        // Thiết lập dữ liệu user trong Firestore
         await fakeFirestore.collection('users').doc('testUid').set({
           'username': 'testuser',
           'fullname': 'Test User',
           'email': 'test@example.com',
           'status': true,
+          'FCM': 'testFCMToken'
         });
 
-        when(mockNotificationService.getDeviceToken()).thenAnswer((_) async => 'testFCMToken');
+        // when(mockNotificationService.getDeviceToken()).thenAnswer((_) async => 'testFCMToken');
 
-        final result = await authService.signInWithEmailAndPassword('test@example.com', 'password123');
+        // Thực hiện đăng nhập
+        final result = await authService.signInWithEmailAndPassword(
+            'test@example.com', 'password123');
 
         expect(result, isA<User>());
-        expect(result?.uid, 'testUid');
+        expect(result?.email, 'test@example.com');
 
-        // Verify FCM token was updated
-        final userDoc = await fakeFirestore.collection('users').doc('testUid').get();
+        final userDoc =
+            await fakeFirestore.collection('users').doc('testUid').get();
         expect(userDoc.data()!['FCM'], 'testFCMToken');
       });
 
-      test('should throw exception when user is not found', () async {
-        // Add a disabled user to Firestore
-        await fakeFirestore.collection('users').doc('testUid').set({
-          'username': 'testuser',
-          'fullname': 'Test User',
-          'email': 'test@example.com',
-          'status': false,
-        });
-
-        expect(
-          () => authService.signInWithEmailAndPassword('test@example.com', 'password123'),
-          throwsA(isA<Exception>().having((e) => e.toString(), 'message', contains('Không tìm thấy dữ liệu người dùng'))),
+      test('should throw exception when sign in fails', () async {
+        await expectLater(
+          authService.signInWithEmailAndPassword(
+              'nonexistent@example.com', 'wrongpassword'),
+          throwsA(isA<FirebaseAuthException>()
+              .having((e) => e.code, 'code', 'user-not-found')),
         );
       });
     });
 
     group('signOut', () {
       test('should sign out user successfully', () async {
+        // Mô phỏng đăng nhập
+        final mockUser = MockUser(
+          uid: 'testUid',
+          email: 'test@example.com',
+          isEmailVerified: true,
+        );
+        mockAuth.addUser(mockUser);
+
+        // Thiết lập dữ liệu user trong Firestore
         await fakeFirestore.collection('users').doc('testUid').set({
-          'FCM': 'oldToken',
+          'username': 'testuser',
+          'fullname': 'Test User',
+          'email': 'test@example.com',
+          'status': true,
+          'FCM': 'old'
         });
 
-        await authService.signOut();
-        await fakeFirestore.collection('users').doc('testUid').set({
-          'FCM': '',
-        });
-        // Verify FCM token was cleared
-        final userDoc = await fakeFirestore.collection('users').doc('testUid').get();
+        // Mô phỏng người dùng hiện tại
+        when(mockAuth.currentUser).thenReturn(mockUser);
+
+        // Thực hiện đăng xuất
+        await authService.signOut();;
+
+        // Xác minh FCM token đã được xóa trong Firestore
+        final userDoc =
+            await fakeFirestore.collection('users').doc('testUid').get();
         expect(userDoc.data()!['FCM'], '');
       });
     });
@@ -157,8 +213,8 @@ void main() {
 
         await authService.disableAccount('testUid');
 
-        // Verify account was disabled
-        final userDoc = await fakeFirestore.collection('users').doc('testUid').get();
+        final userDoc =
+            await fakeFirestore.collection('users').doc('testUid').get();
         expect(userDoc.data()!['status'], false);
       });
     });

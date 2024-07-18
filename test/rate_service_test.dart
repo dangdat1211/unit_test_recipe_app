@@ -43,12 +43,14 @@ void main() {
       // Arrange
       final recipeId = 'recipe1';
       final userId = 'user1';
-      await fakeFirestore.collection('rates').add({
+      await fakeFirestore.collection('rates').doc('${userId}_${recipeId}').set({
         'recipeId': recipeId,
         'userId': userId,
         'star': 4.0,
       });
-      await fakeFirestore.collection('rates').add({
+
+      // Set the rating for the second user
+      await fakeFirestore.collection('rates').doc('user2_$recipeId').set({
         'recipeId': recipeId,
         'userId': 'user2',
         'star': 5.0,

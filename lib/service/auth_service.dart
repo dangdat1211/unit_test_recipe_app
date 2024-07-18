@@ -22,6 +22,14 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+
+    if (username.isEmpty || fullname.isEmpty || email.isEmpty || password.isEmpty) {
+      throw FirebaseAuthException(
+        code: 'invalid-input',
+        message: 'Tất cả các trường đều phải được điền đầy đủ.',
+      );
+    }
+
     try {
       UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
@@ -80,7 +88,7 @@ class AuthService {
             );
           }
 
-          String? FCMToken = await NotificationService().getDeviceToken();
+          String? FCMToken = await _notificationService.getDeviceToken();
 
           if (FCMToken != null) {
             await _firestore
@@ -102,21 +110,18 @@ class AuthService {
       rethrow;
     } catch (e) {
       print(e);
-      throw Exception('Đã xảy ra lỗi không xác định.');
+      throw Exception('Đã xảy ra lỗi không xác định.' );
     }
   }
 
   Future<void> signOut() async {
     try {
-      // Lấy ID của người dùng hiện tại
       String? userId = _auth.currentUser?.uid;
 
       if (userId != null) {
-        // Xóa token FCM
         await _firestore.collection('users').doc(userId).update({'FCM': ''});
       }
 
-      // Đăng xuất
       await _auth.signOut();
     } catch (e) {
       throw Exception('Lỗi khi đăng xuất: $e');

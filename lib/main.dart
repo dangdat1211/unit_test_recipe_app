@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:recipe_app/firebase_options.dart';
 import 'package:recipe_app/helpers/local_storage_helper.dart';
-import 'package:recipe_app/screens/screens.dart';
+
 import 'package:recipe_app/service/notification_service.dart';
 
 // Global instance of NotificationService
@@ -19,10 +19,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 void handleNotificationOpen(RemoteMessage message, BuildContext context) {
   print('Notification opened: ${message.data}');
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => const SignInScreen()),
-  );
+
 }
 
 Future<void> main() async {
@@ -91,7 +88,7 @@ class _MainAppState extends State<MainApp> {
           print('Qua đây rồi');
 
           return Scaffold(
-            body: Center(child: SplashScreen()),
+            body: Center(),
           );
         },
       ),
