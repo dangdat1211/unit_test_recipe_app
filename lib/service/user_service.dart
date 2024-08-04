@@ -91,4 +91,28 @@ class UserService {
       rethrow;
     }
   }
+
+  Future<void> toggleAccountStatus(String userId, bool isActive) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'status': isActive,
+      });
+    } catch (e) {
+      throw Exception('Failed to update account status: $e');
+    }
+  }
+
+  Future<void> changeUserRole(String userId, String newRole) async {
+    if (!['Thành viên', 'Chuyên gia', 'Quản trị viên'].contains(newRole)) {
+      throw Exception('Invalid role');
+    }
+
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'role': newRole,
+      });
+    } catch (e) {
+      throw Exception('Failed to change user role: $e');
+    }
+  }
 }

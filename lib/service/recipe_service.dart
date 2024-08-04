@@ -70,4 +70,75 @@ class RecipeService {
     
     return stepsSnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
   }
+
+  Future<void> approveRecipe(String recipeId) async {
+    try {
+      await _firestore.collection('recipes').doc(recipeId).update({
+        'status': 'Đã được phê duyệt',
+      });
+    } catch (e) {
+      print('Error approving recipe: $e');
+      throw Exception('Failed to approve recipe: $e');
+    }
+  }
+
+  Future<void> rejectRecipe(String recipeId, String reason) async {
+    try {
+      await _firestore.collection('recipes').doc(recipeId).update({
+        'status': 'Bị từ chối',
+        'rejectionReason': reason,
+      });
+    } catch (e) {
+      print('Error rejecting recipe: $e');
+      throw Exception('Failed to reject recipe: $e');
+    }
+  }
+
+  Future<void> deleteRecipe(String recipeId) async {
+  try {
+    // Kiểm tra xem recipe có tồn tại không
+    final recipeDoc = await _firestore.collection('recipes').doc(recipeId).get();
+    if (!recipeDoc.exists) {
+      throw Exception('Recipe not found');
+    }
+
+    WriteBatch batch = _firestore.batch();
+
+    // Delete recipe
+    batch.delete(_firestore.collection('recipes').doc(recipeId));
+
+    // Delete related data
+    await _deleteRelatedData(batch, recipeId, 'rates');
+    await _deleteRelatedData(batch, recipeId, 'comments');
+    await _deleteRelatedData(batch, recipeId, 'favorites');
+    await _deleteRelatedData(batch, recipeId, 'steps');
+
+    await batch.commit();
+  } catch (e) {
+    if (e is Exception) {
+      throw e;
+    }
+    throw Exception('Failed to delete recipe: $e');
+  }
+}
+
+  Future<void> _deleteRelatedData(WriteBatch batch, String recipeId, String collectionName) async {
+    QuerySnapshot relatedDocs = await _firestore.collection(collectionName)
+        .where('recipeId', isEqualTo: recipeId)
+        .get();
+    for (var doc in relatedDocs.docs) {
+      batch.delete(doc.reference);
+    }
+  }
+
+  Future<void> hideRecipe(String recipeId) async {
+    try {
+      await _firestore.collection('recipes').doc(recipeId).update({
+        'isHidden': true,
+      });
+    } catch (e) {
+      print('Error hiding recipe: $e');
+      throw Exception('Failed to hide recipe: $e');
+    }
+  }
 }

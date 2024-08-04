@@ -154,4 +154,63 @@ void main() {
       );
     });
   });
+
+  group('toggleAccountStatus', () {
+    test('should toggle account status successfully', () async {
+      await fakeFirestore.collection('users').doc('testUserId').set({
+        'status': false,
+      });
+
+      await userService.toggleAccountStatus('testUserId', true);
+
+      var userDoc = await fakeFirestore.collection('users').doc('testUserId').get();
+      expect(userDoc.data()?['status'], true);
+    });
+
+    test('should throw exception when user does not exist', () async {
+      expect(
+        () => userService.toggleAccountStatus('nonExistentUserId', true),
+        throwsA(isA<Exception>().having(
+          (e) => e.toString(),
+          'message',
+          contains('Failed to update account status'),
+        )),
+      );
+    });
+  });
+
+  group('changeUserRole', () {
+    test('should change user role successfully', () async {
+      await fakeFirestore.collection('users').doc('testUserId').set({
+        'role': 'Thành viên',
+      });
+
+      await userService.changeUserRole('testUserId', 'Chuyên gia');
+
+      var userDoc = await fakeFirestore.collection('users').doc('testUserId').get();
+      expect(userDoc.data()?['role'], 'Chuyên gia');
+    });
+
+    test('should throw exception when role is invalid', () async {
+      expect(
+        () => userService.changeUserRole('testUserId', 'InvalidRole'),
+        throwsA(isA<Exception>().having(
+          (e) => e.toString(),
+          'message',
+          contains('Invalid role'),
+        )),
+      );
+    });
+
+    test('should throw exception when user does not exist', () async {
+      expect(
+        () => userService.changeUserRole('nonExistentUserId', 'Chuyên gia'),
+        throwsA(isA<Exception>().having(
+          (e) => e.toString(),
+          'message',
+          contains('Failed to change user role'),
+        )),
+      );
+    });
+  });
 }

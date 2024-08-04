@@ -160,5 +160,103 @@ void main() {
       expect(stepsSnapshot.docs[0].data()['images'], ['https://example.com/step1.jpg']);
       expect(stepsSnapshot.docs[1].data()['images'], ['https://example.com/step2.jpg']);
     });
+
+    test('approveRecipe - success', () async {
+      // Arrange
+      final recipeId = 'recipe123';
+      await fakeFirestore.collection('recipes').doc(recipeId).set({
+        'status': 'Đợi phê duyệt',
+      });
+
+      // Act
+      await recipeService.approveRecipe(recipeId);
+
+      // Assert
+      final updatedDoc = await fakeFirestore.collection('recipes').doc(recipeId).get();
+      expect(updatedDoc.get('status'), 'Đã được phê duyệt');
+    });
+
+    test('rejectRecipe - success', () async {
+      // Arrange
+      final recipeId = 'recipe123';
+      await fakeFirestore.collection('recipes').doc(recipeId).set({
+        'status': 'Đợi phê duyệt',
+      });
+
+      // Act
+      await recipeService.rejectRecipe(recipeId, 'Bị từ chối');
+
+      // Assert
+      final updatedDoc = await fakeFirestore.collection('recipes').doc(recipeId).get();
+      expect(updatedDoc.get('status'), 'Bị từ chối');
+      expect(updatedDoc.get('rejectionReason'), 'NBị từ chối');
+    });
+
+    test('deleteRecipe - success', () async {
+      // Arrange
+      final recipeId = 'recipe123';
+      await fakeFirestore.collection('recipes').doc(recipeId).set({
+        'name': 'Test Recipe',
+      });
+      await fakeFirestore.collection('rates').add({
+        'recipeId': recipeId,
+        'rate': 5,
+      });
+      await fakeFirestore.collection('comments').add({
+        'recipeId': recipeId,
+        'comment': 'Great recipe!',
+      });
+
+      // Act
+      await recipeService.deleteRecipe(recipeId);
+
+      // Assert
+      final recipeDoc = await fakeFirestore.collection('recipes').doc(recipeId).get();
+      expect(recipeDoc.exists, false);
+
+      final ratesQuery = await fakeFirestore.collection('rates').where('recipeId', isEqualTo: recipeId).get();
+      expect(ratesQuery.docs.isEmpty, true);
+
+      final commentsQuery = await fakeFirestore.collection('comments').where('recipeId', isEqualTo: recipeId).get();
+      expect(commentsQuery.docs.isEmpty, true);
+    });
+
+    test('hideRecipe - success', () async {
+      // Arrange
+      final recipeId = 'recipe123';
+      await fakeFirestore.collection('recipes').doc(recipeId).set({
+        'isHidden': false,
+      });
+
+      // Act
+      await recipeService.hideRecipe(recipeId);
+
+      // Assert
+      final updatedDoc = await fakeFirestore.collection('recipes').doc(recipeId).get();
+      expect(updatedDoc.get('isHidden'), true);
+    });
+
+    test('approveRecipe - failure (recipe not found)', () async {
+      expect(() => recipeService.approveRecipe('nonexistent_recipe'),
+          throwsA(isA<Exception>()));
+    });
+
+    test('rejectRecipe - failure (recipe not found)', () async {
+      expect(() => recipeService.rejectRecipe('nonexistent_recipe', 'Not suitable'),
+          throwsA(isA<Exception>()));
+    });
+
+    test('deleteRecipe - failure (recipe not found)', () async {
+      expect(() => recipeService.deleteRecipe('nonexistent_recipe'),
+          throwsA(isA<Exception>()));
+    });
+
+    test('hideRecipe - failure (recipe not found)', () async {
+      expect(() => recipeService.hideRecipe('nonexistent_recipe'),
+          throwsA(isA<Exception>()));
+    });
+
   });
+
+  
 }
