@@ -20,6 +20,10 @@ class FollowService {
 
   Future<void> toggleFollow(String userId, String otherUserId) async {
 
+    if (userId == ''  || otherUserId == '') {
+      throw Exception();
+    }
+
     DocumentReference currentUserRef =
         _firestore.collection('users').doc(userId);
     DocumentSnapshot currentUserSnapshot = await currentUserRef.get();
@@ -39,20 +43,19 @@ class FollowService {
       followings.add(otherUserId);
       followers.add(userId);
 
-      await _notificationService.createNotification(
-        content: 'vừa mới theo dõi bạn', 
-        fromUser: userId,
-        userId: otherUserId,
-        recipeId: '',
-        screen: 'user'
-      );
-      Map<String, dynamic> currentUserInfo = await _userService.getUserInfo(otherUserId);
-      await _notificationService.sendNotification(currentUserInfo['FCM'], 'Theo dõi mới', '${currentUserInfo['fullname']} vừa theo dõi bạn ',
-      data: {'screen': 'user', 'userId': otherUserId});
+      // await _notificationService.createNotification(
+      //   content: 'vừa mới theo dõi bạn', 
+      //   fromUser: userId,
+      //   userId: otherUserId,
+      //   recipeId: '',
+      //   screen: 'user'
+      // );
+      // Map<String, dynamic> currentUserInfo = await _userService.getUserInfo(otherUserId);
+      // await _notificationService.sendNotification(currentUserInfo['FCM'], 'Theo dõi mới', '${currentUserInfo['fullname']} vừa theo dõi bạn ',
+      // data: {'screen': 'user', 'userId': otherUserId});
 
     }
     await currentUserRef.update({'followings': followings});
     await otherUser.update({'followers': followers});
-
   }
 }

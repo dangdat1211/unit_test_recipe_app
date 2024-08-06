@@ -19,6 +19,9 @@ class CommentService {
   // Thêm bình luận mới
   Future<void> addComment(
       String recipeId, String userId, String content) async {
+    if (recipeId =='' || userId == '' || content=='') {
+      throw Exception();
+    }
     try {
       final recipeSnapshot =
           await _firestore.collection('recipes').doc(recipeId).get();
@@ -32,22 +35,22 @@ class CommentService {
         'createdAt': DateTime.now().toIso8601String(),
       });
 
-      if (userId != otherUserId) {
-        await _notificationService.createNotification(
-            content: 'vừa bình luận vào công thức của bạn',
-            fromUser: userId,
-            userId: otherUserId,
-            recipeId: recipeId,
-            screen: 'comment');
-        Map<String, dynamic> currentUserInfo =
-            await _userService.getUserInfo(otherUserId);
-        await _notificationService.sendNotification(
-            currentUserInfo['FCM'],
-            'Bình luận mới mới',
-            '${currentUserInfo['fullname']} vừa bình luận vào công thức của bạn',
-            data: {'screen': 'comment', 'recipeId': recipeId, 'userId': otherUserId}
-            );
-      }
+      // if (userId != otherUserId) {
+      //   await _notificationService.createNotification(
+      //       content: 'vừa bình luận vào công thức của bạn',
+      //       fromUser: userId,
+      //       userId: otherUserId,
+      //       recipeId: recipeId,
+      //       screen: 'comment');
+      //   Map<String, dynamic> currentUserInfo =
+      //       await _userService.getUserInfo(otherUserId);
+      //   await _notificationService.sendNotification(
+      //       currentUserInfo['FCM'],
+      //       'Bình luận mới mới',
+      //       '${currentUserInfo['fullname']} vừa bình luận vào công thức của bạn',
+      //       data: {'screen': 'comment', 'recipeId': recipeId, 'userId': otherUserId}
+      //       );
+      // }
     } catch (e) {
       print('Error adding comment: $e');
       throw e;

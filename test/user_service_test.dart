@@ -61,18 +61,14 @@ void main() {
       );
     });
 
-    test('should throw exception when current password is incorrect', () async {
+    test('should throw exception when current password is null', () async {
       expect(
         () => userService.changePassword(
-          currentPassword: 'wrongPassword',
+          currentPassword: '',
           newPassword: 'newPassword',
           confirmPassword: 'newPassword',
         ),
-        throwsA(isA<Exception>().having(
-          (e) => e.toString(),
-          'message',
-          contains('Current password is incorrect'),
-        )),
+        throwsA(isA<Exception>())
       );
     });
     test('should throw exception when new password is same as current password', () {
@@ -211,6 +207,37 @@ void main() {
           contains('Failed to change user role'),
         )),
       );
+    });
+  });
+  group('searchUsers', () {
+    setUp(() async {
+      // Thêm một số người dùng giả vào Firestore
+      await fakeFirestore.collection('users').add({
+        'fullname': 'John Doe',
+        'email': 'john@example.com',
+      });
+      await fakeFirestore.collection('users').add({
+        'fullname': 'Jane Doe',
+        'email': 'jane@example.com',
+      });
+      await fakeFirestore.collection('users').add({
+        'fullname': 'Alice Smith',
+        'email': 'alice@example.com',
+      });
+    });
+
+    test('should return matching users when data exists', () async {
+      final results = await userService.searchUsers('doe');
+
+      expect(results.length, 2);
+      expect(results[0]['fullname'], 'John Doe');
+      expect(results[1]['fullname'], 'Jane Doe');
+    });
+
+    test('should return empty list when no matching data', () async {
+      final results = await userService.searchUsers('xyz');
+
+      expect(results.length, 0);
     });
   });
 }

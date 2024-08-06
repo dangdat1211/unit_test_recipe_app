@@ -140,6 +140,10 @@ class AuthService {
   }
 
   Future<void> disableAccount(String userId) async {
+    if (userId== '') {
+      throw Exception();
+    }
+
     try {
       await _firestore.collection('users').doc(userId).update({
         'status': false,

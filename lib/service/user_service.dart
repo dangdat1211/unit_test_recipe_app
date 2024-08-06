@@ -54,6 +54,10 @@ class UserService {
       throw Exception('No user logged in');
     }
 
+    if (currentPassword == '' ||  confirmPassword == '') {
+      throw Exception('No user logged in');
+    }
+
     if (newPassword != confirmPassword) {
       throw Exception('New password and confirm password do not match');
     }
@@ -113,6 +117,31 @@ class UserService {
       });
     } catch (e) {
       throw Exception('Failed to change user role: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> searchUsers(String query) async {
+    List<Map<String, dynamic>> searchResults = [];
+
+    try {
+      final snapshot = await _firestore.collection('users').get();
+
+      for (var userDoc in snapshot.docs) {
+        var userData = userDoc.data() as Map<String, dynamic>;
+
+        if (userData['fullname']
+            .toString()
+            .toLowerCase()
+            .contains(query.toLowerCase())) {
+          userData['id'] = userDoc.id; // Lấy id từ documentId
+          searchResults.add(userData);
+        }
+      }
+
+      return searchResults;
+    } catch (e) {
+      print('Error searching users: $e');
+      return [];
     }
   }
 }

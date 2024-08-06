@@ -31,6 +31,7 @@ void main() {
       // Mock user data
       final userId = 'user123';
       final otherUserId = 'otherUser456';
+      
       await fakeFirestore.collection('users').doc(userId).set({
         'followings': [],
         'FCM': 'mock_fcm_token',
@@ -42,29 +43,6 @@ void main() {
         'fullname': 'Other User',
       });
 
-      // Mock getUserInfo response
-      when(userService.getUserInfo(otherUserId)).thenAnswer((_) async => {
-        'FCM': 'mock_fcm_token',
-        'fullname': 'Other User',
-      });
-
-      // Mock createNotification to return Future<void>
-      when(notificationService.createNotification(
-        content: ('content'),
-        fromUser: ('fromUser'),
-        userId: ('userId'),
-        recipeId: ('recipeId'),
-        screen: ('screen'),
-      )).thenAnswer((_) async => Future.value());
-
-      // Mock sendNotification to return Future<void>
-      when(notificationService.sendNotification(
-        'any',
-        'any',
-        'any',
-        data: anyNamed('data'),
-      )).thenAnswer((_) async => Future.value());
-
       // Perform toggleFollow
       await followService.toggleFollow(userId, otherUserId);
 
@@ -74,24 +52,12 @@ void main() {
 
       expect(currentUserDoc.data()?['followings'], contains(otherUserId));
       expect(otherUserDoc.data()?['followers'], contains(userId));
-
-      // Verify notificationService method calls
-      verify(notificationService.createNotification(
-        content: 'vừa mới theo dõi bạn',
-        fromUser: userId,
-        userId: otherUserId,
-        recipeId: '',
-        screen: 'user',
-      )).called(1);
-
-      verify(notificationService.sendNotification(
-        'mock_fcm_token',
-        'Theo dõi mới',
-        'Other User vừa theo dõi bạn',
-        data: {'screen': 'user', 'userId': otherUserId},
-      )).called(1);
     });
 
-    // Add more test cases as needed
+    test('Throw Exception when follow null id', () async {
+      expect(() => followService.toggleFollow('', ''),
+          throwsA(isA<Exception>()));
+    });
+
   });
 }

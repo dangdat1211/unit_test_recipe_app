@@ -254,6 +254,12 @@ class NotificationService {
     required String recipeId,
     required String screen,
   }) async {
+    if (content == '' || fromUser == '') {
+      throw Exception();
+      return;
+      
+    }
+
     try {
       await _firestore.collection('notifications').add({
         'content': content,

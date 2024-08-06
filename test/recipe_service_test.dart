@@ -189,7 +189,7 @@ void main() {
       // Assert
       final updatedDoc = await fakeFirestore.collection('recipes').doc(recipeId).get();
       expect(updatedDoc.get('status'), 'Bị từ chối');
-      expect(updatedDoc.get('rejectionReason'), 'NBị từ chối');
+      expect(updatedDoc.get('rejectionReason'), 'Bị từ chối');
     });
 
     test('deleteRecipe - success', () async {

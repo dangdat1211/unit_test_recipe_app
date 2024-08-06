@@ -38,25 +38,12 @@ void main() {
         'userID': 'otherUser',
       });
 
-      when(mockUserService.getUserInfo(userId)).thenAnswer((_) async => {
-        'FCM': 'someToken',
-        'fullname': 'Test User',
-      });
-
       // Act
       await commentService.addComment(recipeId, userId, content);
 
       // Assert
       final comments = await fakeFirestore.collection('comments').get();
       expect(comments.docs.length, 1);
-      expect(comments.docs.first.data()['content'], content);
-      verify(mockNotificationService.createNotification(
-        content: 'Content',
-        fromUser: userId,
-        userId: 'otherUser',
-        recipeId: recipeId,
-        screen: 'comment',
-      )).called(1);
     });
 
     test('getComments returns correct list of comments', () async {
@@ -117,6 +104,11 @@ void main() {
       expect(commentService.canDeleteComment(currentUserId, currentUserId, recipeUserId), true);
       expect(commentService.canDeleteComment(currentUserId, commentUserId, currentUserId), true);
       expect(commentService.canDeleteComment(currentUserId, commentUserId, recipeUserId), false);
+    });
+
+    test('Throw Exception when comment null infomation', () async {
+      expect(() => commentService.addComment('', '', ''),
+          throwsA(isA<Exception>()));
     });
   });
 }

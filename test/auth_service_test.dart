@@ -217,6 +217,11 @@ void main() {
             await fakeFirestore.collection('users').doc('testUid').get();
         expect(userDoc.data()!['status'], false);
       });
+
+      test('throw Exception when disable account null', () async {
+        expect(() => authService.disableAccount(''),
+            throwsA(isA<Exception>()));
+      });
     });
   });
 }
